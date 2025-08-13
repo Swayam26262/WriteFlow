@@ -6,6 +6,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -41,6 +42,16 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
+          <div className="flex justify-center mb-2">
+            <Image
+              src="https://res.cloudinary.com/df2oollzg/image/upload/v1755093655/writeflow-removebg-preview_jdzqfh.png"
+              alt="WriteFlow"
+              width={180}
+              height={48}
+              className="h-12 w-auto"
+              priority
+            />
+          </div>
           <CardTitle className="text-2xl font-bold text-center">Create account</CardTitle>
           <CardDescription className="text-center">Enter your information to create your account</CardDescription>
         </CardHeader>

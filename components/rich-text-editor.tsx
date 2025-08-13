@@ -45,7 +45,13 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
     },
+    autofocus: true,
     immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none min-h-[50vh] p-4 focus:outline-none',
+      },
+    },
   })
 
   if (!editor) {
@@ -60,7 +66,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
   }
 
   return (
-    <div className={`border rounded-lg ${className}`}>
+    <div className={`border rounded-lg bg-white shadow-sm ${className}`} onClick={() => editor.chain().focus().run()}>
       <div className="border-b p-2 flex flex-wrap gap-1">
         <Button
           variant={editor.isActive('bold') ? 'default' : 'ghost'}
@@ -140,8 +146,8 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
           <LinkIcon className="h-4 w-4" />
         </Button>
       </div>
-      <div className="p-4 min-h-[300px]">
-        <EditorContent editor={editor} className="prose prose-sm max-w-none" />
+      <div className="">
+        <EditorContent editor={editor} />
       </div>
     </div>
   )

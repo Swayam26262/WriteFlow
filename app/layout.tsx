@@ -7,9 +7,13 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { Navigation } from "@/components/navigation"
 
 export const metadata: Metadata = {
-  title: "BlogPlatform - Multi-User Blogging Platform",
+  title: "WriteFlow - Multi-User Blogging Platform",
   description: "A full-featured MERN stack blogging platform with rich content creation and user management",
   generator: "v0.dev",
+  icons: {
+    icon: "https://res.cloudinary.com/df2oollzg/image/upload/v1755095614/Untitled_design_1_avqxrj.svg",
+    shortcut: "https://res.cloudinary.com/df2oollzg/image/upload/v1755095614/Untitled_design_1_avqxrj.svg",
+  },
 }
 
 export default function RootLayout({

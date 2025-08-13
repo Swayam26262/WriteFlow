@@ -110,7 +110,7 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>Post Content</CardTitle>
             </CardHeader>
@@ -148,7 +148,7 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>SEO Settings</CardTitle>
             </CardHeader>
@@ -178,7 +178,7 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
         </div>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>Publish Settings</CardTitle>
             </CardHeader>
@@ -236,7 +236,7 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>Tags</CardTitle>
             </CardHeader>

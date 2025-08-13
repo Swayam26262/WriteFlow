@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 import {
@@ -31,8 +32,15 @@ export function Navigation() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-8">
-            <Link href="/" className="text-2xl font-bold text-gray-900">
-              BlogPlatform
+            <Link href="/" className="flex items-center">
+              <Image
+                src="https://res.cloudinary.com/df2oollzg/image/upload/v1755093655/writeflow-removebg-preview_jdzqfh.png"
+                alt="WriteFlow"
+                width={150}
+                height={40}
+                className="h-10 w-auto"
+                priority
+              />
             </Link>
             <div className="hidden md:flex space-x-6">
               <Link href="/posts" className="text-gray-600 hover:text-gray-900">

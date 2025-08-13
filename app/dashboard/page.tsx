@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,21 +10,28 @@ import { useAuth } from "@/contexts/auth-context"
 import type { Post } from "@/lib/posts"
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Redirect readers to home page
-  if (user && user.role === "reader") {
-    window.location.href = "/"
-    return null
-  }
+  // Redirect readers to home page (avoid side effects during render)
+  useEffect(() => {
+    if (!authLoading && user && user.role === "reader") {
+      router.replace("/")
+    }
+  }, [authLoading, user, router])
 
   useEffect(() => {
-    if (user) {
+    if (authLoading) return
+    if (!user) {
+      setLoading(false)
+      return
+    }
+    if (user.role !== "reader") {
       fetchPosts()
     }
-  }, [user])
+  }, [authLoading, user])
 
   const fetchPosts = async () => {
     try {
@@ -48,14 +56,14 @@ export default function DashboardPage() {
       })
 
       if (response.ok) {
-        setPosts(posts.filter((post) => post.id !== postId))
+        setPosts((currentPosts) => currentPosts.filter((post) => post.id !== postId))
       }
     } catch (error) {
       console.error("Error deleting post:", error)
     }
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>

@@ -290,6 +290,50 @@ export async function getPostById(id: number): Promise<Post | null> {
   }
 }
 
+export async function getPostBySlug(slug: string): Promise<Post | null> {
+  try {
+    const posts = await sql`
+      SELECT p.*, u.name as author_name, u.email as author_email,
+             c.name as category_name, c.slug as category_slug
+      FROM posts p
+      LEFT JOIN users u ON p.author_id = u.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.slug = ${slug} AND p.status = 'published'
+      LIMIT 1
+    `
+
+    const post = posts[0]
+    if (!post) return null
+
+    const tags = await sql`
+      SELECT t.id, t.name, t.slug
+      FROM tags t
+      JOIN post_tags pt ON t.id = pt.tag_id
+      WHERE pt.post_id = ${post.id}
+    `
+
+    return {
+      ...post,
+      author: {
+        id: post.author_id,
+        name: post.author_name,
+        email: post.author_email,
+      },
+      category: post.category_name
+        ? {
+            id: post.category_id,
+            name: post.category_name,
+            slug: post.category_slug,
+          }
+        : undefined,
+      tags,
+    }
+  } catch (error) {
+    console.error("Error fetching post by slug:", error)
+    return null
+  }
+}
+
 export async function deletePost(postId: number, authorId: number): Promise<boolean> {
   try {
     const result = await sql`
