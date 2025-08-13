@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
+import { Navigation } from "@/components/navigation"
 
 export const metadata: Metadata = {
   title: "BlogPlatform - Multi-User Blogging Platform",
@@ -28,7 +29,10 @@ html {
         `}</style>
       </head>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <Navigation />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )

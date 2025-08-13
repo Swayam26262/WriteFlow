@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/contexts/auth-context"
-import { ImageUpload } from "./image-upload"
+import { ProfileImageUpload } from "./profile-image-upload"
 
 interface ProfileData {
   name: string
@@ -139,10 +139,9 @@ export function ProfileEditor() {
           <div>
             <Label>Profile Picture</Label>
             <div className="mt-2">
-              <ImageUpload
+              <ProfileImageUpload
                 onImageUpload={handleImageUpload}
                 currentImage={formData.profile_picture}
-                className="w-32 h-32 rounded-full"
               />
             </div>
           </div>

@@ -1,40 +1,58 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { cookies } from "next/headers"
+import { verifyToken, getUserById } from "@/lib/auth"
 import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { email, newRole } = await request.json()
-    
-    console.log(`Updating user ${email} to role ${newRole}`)
-    
-    const result = await sql`
-      UPDATE users 
-      SET role = ${newRole}
-      WHERE email = ${email}
-      RETURNING id, email, name, role
-    `
-    
-    if (result.length === 0) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "User not found" 
-      }, { status: 404 })
+    const cookieStore = await cookies()
+    const token = cookieStore.get("auth-token")?.value
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-    
-    console.log("User updated:", result[0])
-    
-    return NextResponse.json({ 
-      success: true, 
-      user: result[0],
-      message: `User ${email} role updated to ${newRole}`
+
+    const payload = verifyToken(token)
+    if (!payload) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    }
+
+    const user = await getUserById(payload.userId)
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const { role, bio, profile_picture, social_links } = await request.json()
+
+    // Only allow upgrading from reader to author
+    if (user.role !== "reader" || role !== "author") {
+      return NextResponse.json({ error: "Invalid role upgrade" }, { status: 400 })
+    }
+
+    // Update user role and profile information
+    const updatedUser = await sql`
+      UPDATE users 
+      SET 
+        role = ${role},
+        bio = ${bio || null},
+        profile_picture = ${profile_picture || null},
+        social_links = ${social_links ? JSON.stringify(social_links) : null}
+      WHERE id = ${user.id}
+      RETURNING id, email, name, bio, profile_picture, social_links, role, is_verified, created_at
+    `
+
+    if (!updatedUser[0]) {
+      return NextResponse.json({ error: "Failed to update user" }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      user: updatedUser[0],
+      message: "Successfully upgraded to author",
     })
   } catch (error) {
     console.error("Update user role error:", error)
-    return NextResponse.json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : "Unknown error"
-    }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

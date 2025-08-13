@@ -9,9 +9,15 @@ import { useAuth } from "@/contexts/auth-context"
 import type { Post } from "@/lib/posts"
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Redirect readers to home page
+  if (user && user.role === "reader") {
+    window.location.href = "/"
+    return null
+  }
 
   useEffect(() => {
     if (user) {
@@ -59,26 +65,12 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">Dashboard</h1>
-              <p className="text-gray-600">Welcome back, {user?.name}!</p>
-            </div>
-            <div className="flex gap-2">
-              <Button asChild>
-                <Link href="/dashboard/posts/new">New Post</Link>
-              </Button>
-              <Button variant="outline" onClick={logout}>
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+          <p className="text-gray-600">Welcome back, {user?.name}!</p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="pb-2">

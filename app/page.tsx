@@ -1,50 +1,170 @@
-import Link from "next/link"
+"use client"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { PostSearch, type SearchFilters } from "@/components/post-search"
+import Link from "next/link"
+import Image from "next/image"
+
+interface Post {
+  id: number
+  title: string
+  slug: string
+  excerpt: string
+  featured_image?: string
+  published_at: string
+  author: {
+    name: string
+  }
+  category?: {
+    name: string
+    slug: string
+  }
+  tags: Array<{
+    id: number
+    name: string
+    slug: string
+  }>
+}
 
 export default function HomePage() {
+  const [posts, setPosts] = useState<Post[]>([])
+  const [loading, setLoading] = useState(false)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    total: 0,
+    pages: 0,
+  })
+
+  useEffect(() => {
+    handleSearch({ query: "", category: "", tag: "" })
+  }, [])
+
+  const handleSearch = async (filters: SearchFilters, page = 1) => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.limit.toString(),
+      })
+
+      if (filters.query) params.append("q", filters.query)
+      if (filters.category) params.append("category", filters.category)
+      if (filters.tag) params.append("tag", filters.tag)
+
+      const response = await fetch(`/api/posts/search?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setPosts(data.posts)
+        setPagination(data.pagination)
+      }
+    } catch (error) {
+      console.error("Error searching posts:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePageChange = (newPage: number) => {
+    const currentFilters = { query: "", category: "", tag: "" }
+    handleSearch(currentFilters, newPage)
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">Welcome to BlogPlatform</h1>
-          <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-            A full-featured multi-user blogging platform where writers can create, publish, and manage their content
-            with rich text editing, media uploads, and engaging community features.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button asChild size="lg" className="text-lg px-8 py-3">
-              <Link href="/register">Get Started</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="text-lg px-8 py-3 bg-transparent">
-              <Link href="/login">Sign In</Link>
-            </Button>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 mt-16">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold mb-3">Rich Content Creation</h3>
-              <p className="text-gray-600">
-                Create beautiful blog posts with our WYSIWYG editor, supporting formatting, images, and embedded
-                content.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold mb-3">User Engagement</h3>
-              <p className="text-gray-600">
-                Build your audience with likes, comments, and social sharing. Connect with readers and other authors.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold mb-3">Professional Features</h3>
-              <p className="text-gray-600">
-                SEO optimization, analytics, categories, tags, and everything you need for professional blogging.
-              </p>
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-5xl font-bold text-gray-900 mb-6">Welcome to BlogPlatform</h1>
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+              Discover amazing stories from our community of writers. Read, engage, and share your own stories.
+            </p>
           </div>
         </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold mb-4">Latest Posts</h2>
+          <PostSearch onSearch={handleSearch} loading={loading} />
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8">Loading posts...</div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No posts found.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {posts.map((post) => (
+                <Card key={post.id} className="overflow-hidden">
+                  {post.featured_image && (
+                    <div className="relative aspect-video">
+                      <Image
+                        src={post.featured_image || "/placeholder.svg"}
+                        alt={post.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <CardHeader>
+                    <CardTitle className="line-clamp-2">
+                      <Link href={`/posts/${post.slug}`} className="hover:text-primary">
+                        {post.title}
+                      </Link>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{post.excerpt}</p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {post.category && (
+                        <Badge variant="outline">
+                          <Link href={`/category/${post.category.slug}`}>{post.category.name}</Link>
+                        </Badge>
+                      )}
+                      {post.tags.map((tag) => (
+                        <Badge key={tag.id} variant="secondary">
+                          <Link href={`/tag/${tag.slug}`}>{tag.name}</Link>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      By {post.author.name} • {new Date(post.published_at).toLocaleDateString()}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {pagination.pages > 1 && (
+              <div className="flex justify-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                >
+                  Previous
+                </Button>
+                <span className="flex items-center px-4">
+                  Page {pagination.page} of {pagination.pages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page === pagination.pages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

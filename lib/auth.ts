@@ -94,6 +94,7 @@ export async function createUser(userData: {
 }): Promise<User | null> {
   try {
     const hashedPassword = await hashPassword(userData.password)
+    // Always default to "reader" role for new registrations
     const users = await sql`
       INSERT INTO users (email, password_hash, name, role)
       VALUES (${userData.email}, ${hashedPassword}, ${userData.name}, ${userData.role || "reader"})

@@ -2,9 +2,10 @@ import { type NextRequest, NextResponse } from "next/server"
 import { verifyToken } from "@/lib/auth"
 import { getPostById, updatePost, deletePost } from "@/lib/posts"
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const postId = Number.parseInt(params.id)
+    const { id } = await params
+    const postId = Number.parseInt(id)
     const post = await getPostById(postId)
 
     if (!post) {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const token = request.cookies.get("auth-token")?.value
 
@@ -31,7 +32,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const postId = Number.parseInt(params.id)
+    const { id } = await params
+    const postId = Number.parseInt(id)
     const postData = await request.json()
 
     const updatedPost = await updatePost(postId, payload.userId, postData)
@@ -47,7 +49,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const token = request.cookies.get("auth-token")?.value
 
@@ -60,7 +62,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const postId = Number.parseInt(params.id)
+    const { id } = await params
+    const postId = Number.parseInt(id)
     const success = await deletePost(postId, payload.userId)
 
     if (!success) {

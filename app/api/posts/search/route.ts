@@ -13,48 +13,70 @@ export async function GET(request: NextRequest) {
     const limit = Number.parseInt(searchParams.get("limit") || "10")
     const offset = (page - 1) * limit
 
-    const whereConditions = ["p.status = 'published'"]
-    const queryParams: any[] = []
-    let paramIndex = 1
+    console.log("Search params:", { query, category, tag, page, limit, offset })
 
-    if (query.trim()) {
-      whereConditions.push(
-        `(p.title ILIKE $${paramIndex} OR p.content ILIKE $${paramIndex} OR p.excerpt ILIKE $${paramIndex})`,
-      )
-      queryParams.push(`%${query.trim()}%`)
-      paramIndex++
-    }
-
-    if (category) {
-      whereConditions.push(`c.slug = $${paramIndex}`)
-      queryParams.push(category)
-      paramIndex++
-    }
-
-    if (tag) {
-      whereConditions.push(`EXISTS (
-        SELECT 1 FROM post_tags pt 
-        JOIN tags t ON pt.tag_id = t.id 
-        WHERE pt.post_id = p.id AND t.slug = $${paramIndex}
-      )`)
-      queryParams.push(tag)
-      paramIndex++
-    }
-
-    const whereClause = whereConditions.join(" AND ")
-
-    const postsQuery = `
+    // Build the base query
+    let postsQuery = sql`
       SELECT p.*, u.name as author_name, c.name as category_name, c.slug as category_slug
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE ${whereClause}
-      ORDER BY p.published_at DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      WHERE p.status = 'published'
     `
-    queryParams.push(limit, offset)
 
-    const posts = await sql.unsafe(postsQuery, queryParams)
+    // Add search conditions
+    if (query.trim()) {
+      postsQuery = sql`
+        ${postsQuery}
+        AND (p.title ILIKE ${`%${query.trim()}%`} OR p.content ILIKE ${`%${query.trim()}%`} OR p.excerpt ILIKE ${`%${query.trim()}%`})
+      `
+    }
+
+    if (category) {
+      postsQuery = sql`
+        ${postsQuery}
+        AND c.slug = ${category}
+      `
+    }
+
+    if (tag) {
+      postsQuery = sql`
+        ${postsQuery}
+        AND EXISTS (
+          SELECT 1 FROM post_tags pt 
+          JOIN tags t ON pt.tag_id = t.id 
+          WHERE pt.post_id = p.id AND t.slug = ${tag}
+        )
+      `
+    }
+
+    // Add ordering and pagination
+    postsQuery = sql`
+      ${postsQuery}
+      ORDER BY p.published_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `
+
+    console.log("Executing posts query...")
+    const posts = await postsQuery
+    
+    console.log("Posts result type:", typeof posts)
+    console.log("Posts result length:", posts?.length || 0)
+    console.log("First post:", posts?.[0] || "No posts")
+
+    // Handle case where no posts are found
+    if (!posts || posts.length === 0) {
+      console.log("No posts found, returning empty array")
+      return NextResponse.json({
+        posts: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          pages: 0,
+        },
+      })
+    }
 
     // Get tags for each post
     const postsWithTags = await Promise.all(
@@ -85,14 +107,42 @@ export async function GET(request: NextRequest) {
     )
 
     // Get total count
-    const countQuery = `
+    let countQuery = sql`
       SELECT COUNT(*) as count
       FROM posts p
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE ${whereClause}
+      WHERE p.status = 'published'
     `
-    const countResult = await sql.unsafe(countQuery, queryParams.slice(0, -2))
+
+    if (query.trim()) {
+      countQuery = sql`
+        ${countQuery}
+        AND (p.title ILIKE ${`%${query.trim()}%`} OR p.content ILIKE ${`%${query.trim()}%`} OR p.excerpt ILIKE ${`%${query.trim()}%`})
+      `
+    }
+
+    if (category) {
+      countQuery = sql`
+        ${countQuery}
+        AND c.slug = ${category}
+      `
+    }
+
+    if (tag) {
+      countQuery = sql`
+        ${countQuery}
+        AND EXISTS (
+          SELECT 1 FROM post_tags pt 
+          JOIN tags t ON pt.tag_id = t.id 
+          WHERE pt.post_id = p.id AND t.slug = ${tag}
+        )
+      `
+    }
+
+    const countResult = await countQuery
     const total = Number.parseInt(countResult[0].count)
+
+    console.log("Total posts count:", total)
 
     return NextResponse.json({
       posts: postsWithTags,
