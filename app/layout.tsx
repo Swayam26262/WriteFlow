@@ -8,9 +8,9 @@ import { Navigation } from "@/components/navigation"
 import { allura } from "@/lib/fonts"
 
 export const metadata: Metadata = {
-  title: "WriteFlow - Multi-User Blogging Platform",
-  description: "A full-featured MERN stack blogging platform with rich content creation and user management",
-  generator: "v0.dev",
+  title: "WriteFlow",
+  description: "A full-featured blogging platform with rich content creation and user management",
+  generator: "WriteFlow",
   icons: {
     icon: "https://res.cloudinary.com/df2oollzg/image/upload/v1755095614/Untitled_design_1_avqxrj.svg",
     shortcut: "https://res.cloudinary.com/df2oollzg/image/upload/v1755095614/Untitled_design_1_avqxrj.svg",
