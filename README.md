@@ -1,8 +1,8 @@
 ![WriteFlow Banner](https://socialify.git.ci/Swayam26262/WriteFlow/image?custom_language=Next.js&description=1&font=Raleway&language=1&name=1&owner=1&pattern=Brick+Wall&theme=Dark)
 
-## Blog Platform (Next.js 15 + Neon Postgres)
+## WriteFlow (Next.js 15 + Neon Postgres)
 
-A full‑stack blog/CMS built with Next.js App Router, React 19, TypeScript, Tailwind CSS, Neon Postgres, and JWT auth. It includes roles (admin/author/reader), rich text editing, media uploads, categories, tags, comments, likes, search, dashboards, and an admin area.
+A full‑stack blog platform built with Next.js App Router, React 19, TypeScript, Tailwind CSS, Neon Postgres, and JWT auth. It includes roles (admin/author/reader), rich text editing, media uploads, categories, tags, comments, likes, search, dashboards, and an admin area.
 
 ### Tech stack
 - **Framework**: Next.js 15 (App Router), React 19, TypeScript
@@ -21,7 +21,6 @@ A full‑stack blog/CMS built with Next.js App Router, React 19, TypeScript, Tai
 ![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-Tip: To add more shields, paste any badge URL in your README editor (e.g., from shields.io) and press Enter.
 
 ## Quick start
 
@@ -59,8 +58,6 @@ Helpers:
 - Generate a JWT secret: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
 - Or run: `node scripts/generate-secret.js`
 
-Notes:
-- `setup-env.md` contains a minimal env walkthrough as well.
 
 ### 3) Initialize the database
 Use the SQL scripts in `scripts/` (run in order):
@@ -79,10 +76,6 @@ psql "$env:DATABASE_URL" -f scripts/04-add-engagement-tables.sql
 psql "$env:DATABASE_URL" -f scripts/create-admin.sql
 ```
 
-Seeded credentials (from `setup-env.md`):
-- Admin: `admin@blog.com` / `admin123`
-- Author: `author@blog.com` / `author123`
-
 ### 4) Run the app
 ```bash
 npm run dev
@@ -94,9 +87,7 @@ Then open `http://localhost:3000`.
 
 ### Live demo
 
-Deployed URL: https://your-deployment-url.example.com
-
-Replace the URL above with your live deployment.
+Deployed URL: [Link](https://write-flow-delta.vercel.app/)
 
 ## Project structure
 ```
