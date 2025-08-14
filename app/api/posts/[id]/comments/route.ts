@@ -57,8 +57,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const user = await verifyToken(request)
-    if (!user) {
+    const token = request.cookies.get("auth-token")?.value
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const payload = verifyToken(token)
+    if (!payload) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -72,19 +77,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Create comment
     const comment = await sql`
       INSERT INTO comments (post_id, user_id, content, parent_id)
-      VALUES (${postId}, ${user.id}, ${content.trim()}, ${parentId || null})
+      VALUES (${postId}, ${payload.userId}, ${content.trim()}, ${parentId || null})
       RETURNING *
     `
 
     // Get user info for response
     const userInfo = await sql`
-      SELECT name, email FROM users WHERE id = ${user.id}
+      SELECT name, email FROM users WHERE id = ${payload.userId}
     `
 
     const newComment = {
       ...comment[0],
       author: {
-        id: user.id,
+        id: payload.userId,
         name: userInfo[0].name,
         email: userInfo[0].email,
       },

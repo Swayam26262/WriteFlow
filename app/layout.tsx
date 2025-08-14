@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
 import { Navigation } from "@/components/navigation"
+import { allura } from "@/lib/fonts"
 
 export const metadata: Metadata = {
   title: "WriteFlow - Multi-User Blogging Platform",
@@ -29,6 +30,7 @@ html {
   font-family: ${GeistSans.style.fontFamily};
   --font-sans: ${GeistSans.variable};
   --font-mono: ${GeistMono.variable};
+  --font-allura: ${allura.variable};
 }
         `}</style>
       </head>

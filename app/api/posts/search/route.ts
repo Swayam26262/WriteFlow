@@ -17,11 +17,11 @@ export async function GET(request: NextRequest) {
 
     // Build the base query
     let postsQuery = sql`
-      SELECT p.*, u.name as author_name, c.name as category_name, c.slug as category_slug
+      SELECT p.*, u.name as author_name, u.profile_picture as author_profile_picture, c.name as category_name, c.slug as category_slug
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.status = 'published'
+      WHERE p.status = 'published' AND (p.published_at IS NULL OR p.published_at <= NOW())
     `
 
     // Add search conditions
@@ -93,6 +93,7 @@ export async function GET(request: NextRequest) {
           author: {
             id: post.author_id,
             name: post.author_name,
+            profile_picture: post.author_profile_picture,
           },
           category: post.category_name
             ? {

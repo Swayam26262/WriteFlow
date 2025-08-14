@@ -1,22 +1,27 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { allura } from "@/lib/fonts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PostSearch, type SearchFilters } from "@/components/post-search"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 
-interface Post {
+  interface Post {
   id: number
   title: string
   slug: string
   excerpt: string
   featured_image?: string
   published_at: string
+    like_count?: number
+    view_count?: number
   author: {
     name: string
+    profile_picture?: string
   }
   category?: {
     name: string
@@ -30,6 +35,7 @@ interface Post {
 }
 
 export default function HomePage() {
+  const router = useRouter()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(false)
   const [pagination, setPagination] = useState({
@@ -78,7 +84,7 @@ export default function HomePage() {
       <div className="bg-gradient-to-br from-blue-50 to-indigo-100 py-16">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-5xl font-bold text-gray-900 mb-6 text-center leading-tight">
+            <h1 className={`text-6xl md:text-7xl font-bold text-gray-900 mb-6 text-center leading-tight ${allura.className}`}>
               Welcome to WriteFlow
             </h1>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
@@ -104,7 +110,11 @@ export default function HomePage() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {posts.map((post) => (
-                <Card key={post.id} className="overflow-hidden">
+                <Card
+                  key={post.id}
+                  className="overflow-hidden cursor-pointer hover:shadow-md transition"
+                  onClick={() => router.push(`/posts/${post.slug}`)}
+                >
                   {post.featured_image && (
                     <div className="relative aspect-video">
                       <Image
@@ -124,20 +134,33 @@ export default function HomePage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{post.excerpt}</p>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
+                      <span>❤ {post.like_count ?? 0}</span>
+                      <span>👁 {post.view_count ?? 0}</span>
+                    </div>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {post.category && (
-                        <Badge variant="outline">
-                          <Link href={`/category/${post.category.slug}`}>{post.category.name}</Link>
-                        </Badge>
+                        <span onClick={(e) => e.stopPropagation()}>
+                          <Badge variant="outline">
+                            <Link href={`/category/${post.category.slug}`}>{post.category.name}</Link>
+                          </Badge>
+                        </span>
                       )}
                       {post.tags.map((tag) => (
-                        <Badge key={tag.id} variant="secondary">
-                          <Link href={`/tag/${tag.slug}`}>{tag.name}</Link>
-                        </Badge>
+                        <span key={tag.id} onClick={(e) => e.stopPropagation()}>
+                          <Badge variant="secondary">
+                            <Link href={`/tag/${tag.slug}`}>{tag.name}</Link>
+                          </Badge>
+                        </span>
                       ))}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      By {post.author.name} • {new Date(post.published_at).toLocaleDateString()}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {post.author.profile_picture && (
+                        <span className="relative h-6 w-6 overflow-hidden rounded-full border">
+                          <Image src={post.author.profile_picture} alt={post.author.name} fill className="object-cover" />
+                        </span>
+                      )}
+                      <span>By {post.author.name} • {new Date(post.published_at).toLocaleDateString()}</span>
                     </div>
                   </CardContent>
                 </Card>

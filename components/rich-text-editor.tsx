@@ -67,7 +67,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
 
   return (
     <div className={`border rounded-lg bg-white shadow-sm ${className}`} onClick={() => editor.chain().focus().run()}>
-      <div className="border-b p-2 flex flex-wrap gap-1">
+      <div className="border-b p-2 flex flex-wrap gap-1 sticky top-0 z-10 bg-white">
         <Button
           variant={editor.isActive('bold') ? 'default' : 'ghost'}
           size="sm"
@@ -146,7 +146,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
           <LinkIcon className="h-4 w-4" />
         </Button>
       </div>
-      <div className="">
+      <div className="resize-y overflow-auto min-h-[50vh]">
         <EditorContent editor={editor} />
       </div>
     </div>

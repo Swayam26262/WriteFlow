@@ -6,8 +6,13 @@ const sql = neon(process.env.DATABASE_URL!)
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const user = await verifyToken(request)
-    if (!user) {
+    const token = request.cookies.get("auth-token")?.value
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const payload = verifyToken(token)
+    if (!payload) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -15,12 +20,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Check if user already liked this post
     const existingLike = await sql`
-      SELECT id FROM likes WHERE user_id = ${user.id} AND post_id = ${postId}
+      SELECT id FROM likes WHERE user_id = ${payload.userId} AND post_id = ${postId}
     `
 
     if (existingLike.length > 0) {
       // Unlike the post
-      await sql`DELETE FROM likes WHERE user_id = ${user.id} AND post_id = ${postId}`
+      await sql`DELETE FROM likes WHERE user_id = ${payload.userId} AND post_id = ${postId}`
 
       // Update post like count
       await sql`
@@ -34,7 +39,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       // Like the post
       await sql`
         INSERT INTO likes (user_id, post_id)
-        VALUES (${user.id}, ${postId})
+        VALUES (${payload.userId}, ${postId})
       `
 
       // Update post like count
@@ -54,7 +59,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const user = await verifyToken(request)
+    const token = request.cookies.get("auth-token")?.value
+    const payload = token ? verifyToken(token) : null
     const postId = params.id
 
     // Get like count
@@ -67,9 +73,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     let userLiked = false
-    if (user) {
+    if (payload) {
       const userLike = await sql`
-        SELECT id FROM likes WHERE user_id = ${user.id} AND post_id = ${postId}
+        SELECT id FROM likes WHERE user_id = ${payload.userId} AND post_id = ${postId}
       `
       userLiked = userLike.length > 0
     }

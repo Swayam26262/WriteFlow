@@ -23,6 +23,7 @@ export interface Post {
     id: number
     name: string
     email: string
+    profile_picture?: string
   }
   category?: {
     id: number
@@ -46,6 +47,8 @@ export interface CreatePostData {
   meta_title?: string
   meta_description?: string
   tag_ids?: number[]
+  slug?: string
+  published_at?: string | null
 }
 
 export interface SearchPostsParams {
@@ -79,8 +82,8 @@ export async function createPost(authorId: number, postData: CreatePostData): Pr
   try {
     console.log("createPost called with:", { authorId, postData: { ...postData, content: postData.content?.substring(0, 100) + "..." } })
     
-    const slug = generateSlug(postData.title)
-    const publishedAt = postData.status === "published" ? new Date().toISOString() : null
+    const slug = (postData.slug && postData.slug.trim()) ? postData.slug.trim() : generateSlug(postData.title)
+    const publishedAt = postData.status === "published" ? (postData.published_at || new Date().toISOString()) : null
 
     console.log("Generated slug:", slug)
     console.log("Published at:", publishedAt)
@@ -146,8 +149,16 @@ export async function updatePost(
       values.push(postData.title)
       paramIndex++
 
+      if (!postData.slug) {
+        updates.push(`slug = $${paramIndex}`)
+        values.push(generateSlug(postData.title))
+        paramIndex++
+      }
+    }
+
+    if (postData.slug !== undefined) {
       updates.push(`slug = $${paramIndex}`)
-      values.push(generateSlug(postData.title))
+      values.push(postData.slug?.trim() || null)
       paramIndex++
     }
 
@@ -176,9 +187,15 @@ export async function updatePost(
 
       if (postData.status === "published") {
         updates.push(`published_at = $${paramIndex}`)
-        values.push(new Date().toISOString())
+        values.push(postData.published_at || new Date().toISOString())
         paramIndex++
       }
+    }
+
+    if (postData.published_at !== undefined) {
+      updates.push(`published_at = $${paramIndex}`)
+      values.push(postData.published_at)
+      paramIndex++
     }
 
     if (postData.category_id !== undefined) {
@@ -293,12 +310,12 @@ export async function getPostById(id: number): Promise<Post | null> {
 export async function getPostBySlug(slug: string): Promise<Post | null> {
   try {
     const posts = await sql`
-      SELECT p.*, u.name as author_name, u.email as author_email,
+      SELECT p.*, u.name as author_name, u.email as author_email, u.profile_picture as author_profile_picture,
              c.name as category_name, c.slug as category_slug
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.slug = ${slug} AND p.status = 'published'
+      WHERE p.slug = ${slug} AND p.status = 'published' AND (p.published_at IS NULL OR p.published_at <= NOW())
       LIMIT 1
     `
 
@@ -318,6 +335,7 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
         id: post.author_id,
         name: post.author_name,
         email: post.author_email,
+        profile_picture: post.author_profile_picture,
       },
       category: post.category_name
         ? {
@@ -377,7 +395,7 @@ export async function searchPosts(params: SearchPostsParams): Promise<SearchPost
     const offset = (page - 1) * limit
 
     // Build the WHERE clause
-    const whereConditions = ["p.status = 'published'"]
+    const whereConditions = ["p.status = 'published'", "(p.published_at IS NULL OR p.published_at <= NOW())"]
     const queryParams: any[] = []
     let paramIndex = 1
 

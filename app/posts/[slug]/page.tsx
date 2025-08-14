@@ -4,6 +4,9 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { getPostBySlug } from "@/lib/posts"
+import { ViewTracker } from "@/components/view-tracker"
+import { LikeButton } from "@/components/like-button"
+import { CommentsSection } from "@/components/comments-section"
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -20,6 +23,7 @@ export default async function PostPage({ params }: PageProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
+        <ViewTracker postId={post.id} />
         {post.featured_image && (
           <div className="relative aspect-video mb-6">
             <Image src={post.featured_image || "/placeholder.svg"} alt={post.title} fill className="object-cover rounded-md" />
@@ -29,6 +33,11 @@ export default async function PostPage({ params }: PageProps) {
         <h1 className="text-4xl font-bold mb-3">{post.title}</h1>
 
         <div className="flex items-center gap-3 text-sm text-muted-foreground mb-6">
+          {post.author?.profile_picture && (
+            <span className="relative h-8 w-8 overflow-hidden rounded-full border">
+              <Image src={post.author.profile_picture} alt={post.author.name} fill className="object-cover" />
+            </span>
+          )}
           <span>By {post.author?.name}</span>
           <span>•</span>
           <span>{post.published_at ? new Date(post.published_at).toLocaleDateString() : new Date(post.created_at).toLocaleDateString()}</span>
@@ -40,6 +49,10 @@ export default async function PostPage({ params }: PageProps) {
               </Badge>
             </>
           )}
+        </div>
+
+        <div className="mb-6">
+          <LikeButton postId={post.id} />
         </div>
 
         <Card className="mb-8">
@@ -55,9 +68,12 @@ export default async function PostPage({ params }: PageProps) {
             ))}
           </div>
         )}
+
+        <div className="mt-10">
+          <CommentsSection postId={post.id} />
+        </div>
       </div>
     </div>
   )
 }
-
 
