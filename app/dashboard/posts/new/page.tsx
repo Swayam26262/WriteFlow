@@ -4,11 +4,37 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { PostForm, type PostFormData } from "@/components/post-form"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function NewPostPage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
+
+  // Check authorization
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        router.push("/login")
+      } else if (user.role !== "author" && user.role !== "admin") {
+        router.push("/become-author")
+      }
+    }
+  }, [user, authLoading, router])
+
+  // Show loading or redirect if not authorized
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!user || (user.role !== "author" && user.role !== "admin")) {
+    return null // Will redirect in useEffect
+  }
 
   const handleSubmit = async (data: PostFormData) => {
     setLoading(true)

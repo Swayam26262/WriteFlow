@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
 import { Navigation } from "@/components/navigation"
+import { Footer } from "@/components/footer"
 import { allura } from "@/lib/fonts"
 
 export const metadata: Metadata = {
@@ -38,6 +39,7 @@ html {
         <AuthProvider>
           <Navigation />
           {children}
+          <Footer />
         </AuthProvider>
       </body>
     </html>

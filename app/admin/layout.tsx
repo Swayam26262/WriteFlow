@@ -4,7 +4,7 @@ import { cookies } from "next/headers"
 import { verifyToken, getUserById } from "@/lib/auth"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Home, Users, FileText, MessageSquare, BarChart3 } from "lucide-react"
+import { Home, Users, FileText, MessageSquare, BarChart3, Mail } from "lucide-react"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = cookies()
@@ -25,12 +25,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50">
       <div className="flex">
         {/* Sidebar */}
-        <div className="w-64 bg-white shadow-lg min-h-screen">
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-gray-800">Admin Panel</h2>
+        <div className="w-64 bg-gradient-to-b from-white to-purple-50 shadow-lg min-h-screen border-r border-purple-100">
+          <div className="p-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+            <h2 className="text-xl font-bold">Admin Panel</h2>
           </div>
 
           <nav className="mt-6">
@@ -67,6 +67,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <Button variant="ghost" className="w-full justify-start gap-3">
                   <BarChart3 className="h-4 w-4" />
                   Analytics
+                </Button>
+              </Link>
+
+              <Link href="/admin/newsletter">
+                <Button variant="ghost" className="w-full justify-start gap-3">
+                  <Mail className="h-4 w-4" />
+                  Newsletter
                 </Button>
               </Link>
             </div>

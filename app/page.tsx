@@ -8,7 +8,8 @@ import { PostSearch, type SearchFilters } from "@/components/post-search"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { ArrowRight, BookOpen, Users, FileText, Mail, TrendingUp, Clock } from "lucide-react"
+import { ArrowRight, BookOpen, Users, FileText, TrendingUp, Clock } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
   interface Post {
   id: number
@@ -36,6 +37,7 @@ import { ArrowRight, BookOpen, Users, FileText, Mail, TrendingUp, Clock } from "
 
 export default function HomePage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(false)
   const [pagination, setPagination] = useState({
@@ -44,9 +46,7 @@ export default function HomePage() {
     total: 0,
     pages: 0,
   })
-  const [email, setEmail] = useState("")
-  const [subscribeLoading, setSubscribeLoading] = useState(false)
-  const [subscribeMessage, setSubscribeMessage] = useState("")
+
 
   useEffect(() => {
     handleSearch({ query: "", category: "", tag: "" })
@@ -82,38 +82,7 @@ export default function HomePage() {
     handleSearch(currentFilters, newPage)
   }
 
-  const handleSubscribe = async () => {
-    if (!email || !email.includes('@')) {
-      setSubscribeMessage("Please enter a valid email address")
-      return
-    }
 
-    setSubscribeLoading(true)
-    setSubscribeMessage("")
-
-    try {
-      const response = await fetch('/api/newsletter/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setSubscribeMessage("Successfully subscribed! Check your email for confirmation.")
-        setEmail("")
-      } else {
-        setSubscribeMessage(data.error || "Failed to subscribe. Please try again.")
-      }
-    } catch (error) {
-      setSubscribeMessage("Something went wrong. Please try again.")
-    } finally {
-      setSubscribeLoading(false)
-    }
-  }
 
   // Calculate reading time (rough estimate)
   const getReadingTime = (excerpt: string) => {
@@ -121,6 +90,17 @@ export default function HomePage() {
     const wordCount = excerpt.split(' ').length
     const readingTime = Math.ceil(wordCount / wordsPerMinute)
     return readingTime
+  }
+
+  // Handle start writing button click
+  const handleStartWriting = () => {
+    if (!user) {
+      router.push('/login')
+    } else if (user.role !== 'author' && user.role !== 'admin') {
+      router.push('/become-author')
+    } else {
+      router.push('/dashboard/posts/new')
+    }
   }
 
   return (
@@ -146,7 +126,7 @@ export default function HomePage() {
               <Button 
                 size="lg" 
                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
-                onClick={() => router.push('/dashboard/posts/new')}
+                onClick={handleStartWriting}
               >
                 Start Writing
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -205,7 +185,7 @@ export default function HomePage() {
             <div className="text-6xl mb-4">📝</div>
             <h3 className="text-xl font-semibold mb-2">No posts found</h3>
             <p className="text-gray-600 mb-6">Be the first to share your story!</p>
-            <Button onClick={() => router.push('/dashboard/posts/new')}>
+            <Button onClick={handleStartWriting}>
               Write Your First Post
             </Button>
           </div>
@@ -324,43 +304,7 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Newsletter Signup Section */}
-      <div className="bg-gray-50 py-16 border-t border-gray-200">
-        <div className="container mx-auto px-4 text-center">
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Stay Updated</h2>
-            <p className="text-gray-600 mb-8 text-lg">
-              Get the latest stories and writing tips delivered to your inbox every week.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
-              />
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
-                onClick={handleSubscribe}
-                disabled={subscribeLoading}
-              >
-                {subscribeLoading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                ) : (
-                  <Mail className="mr-2 h-4 w-4" />
-                )}
-                {subscribeLoading ? "Subscribing..." : "Subscribe"}
-              </Button>
-            </div>
-            {subscribeMessage && (
-              <p className={`mt-4 text-sm ${subscribeMessage.includes("Successfully") ? "text-green-600" : "text-red-600"}`}>
-                {subscribeMessage}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
+
     </div>
   )
 }

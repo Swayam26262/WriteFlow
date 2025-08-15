@@ -24,11 +24,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const { role, bio, profile_picture, social_links } = await request.json()
+    const { role, bio, profile_picture, social_links, otp } = await request.json()
 
     // Only allow upgrading from reader to author
     if (user.role !== "reader" || role !== "author") {
       return NextResponse.json({ error: "Invalid role upgrade" }, { status: 400 })
+    }
+
+    // Verify OTP if provided
+    if (otp) {
+      const otpRecord = await sql`
+        SELECT * FROM otp_codes 
+        WHERE email = ${user.email} 
+        AND purpose = 'author_verification' 
+        AND expires_at > NOW()
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `
+
+      if (!otpRecord[0] || otpRecord[0].otp !== otp) {
+        return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 400 })
+      }
+
+      // Delete the used OTP
+      await sql`
+        DELETE FROM otp_codes 
+        WHERE email = ${user.email} 
+        AND purpose = 'author_verification'
+      `
+    } else {
+      return NextResponse.json({ error: "OTP verification required" }, { status: 400 })
     }
 
     // Update user role and profile information

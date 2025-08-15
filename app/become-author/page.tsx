@@ -10,10 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/contexts/auth-context"
 import { ProfileImageUpload } from "@/components/profile-image-upload"
+import { Mail, Shield, CheckCircle, Clock } from "lucide-react"
 
 export default function BecomeAuthorPage() {
   const { user, refreshUser } = useAuth()
   const router = useRouter()
+  const [step, setStep] = useState<"form" | "otp" | "success">("form")
   const [formData, setFormData] = useState({
     bio: "",
     profile_picture: "",
@@ -22,10 +24,14 @@ export default function BecomeAuthorPage() {
     linkedin: "",
     github: "",
   })
+  const [otp, setOtp] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [otpSent, setOtpSent] = useState(false)
+  const [countdown, setCountdown] = useState(0)
 
+  // Authorization check
   useEffect(() => {
     if (!user) {
       router.push("/login")
@@ -34,8 +40,21 @@ export default function BecomeAuthorPage() {
     }
   }, [user, router])
 
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [countdown])
+
+  // Show loading or redirect if not authorized
   if (!user || user.role !== "reader") {
-    return null
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg">Redirecting...</div>
+      </div>
+    )
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,6 +62,40 @@ export default function BecomeAuthorPage() {
     setLoading(true)
     setError("")
     setSuccess("")
+
+    try {
+      // First, send OTP to user's email
+      const otpResponse = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: user?.email,
+          purpose: "author_verification"
+        }),
+      })
+
+      if (otpResponse.ok) {
+        setOtpSent(true)
+        setStep("otp")
+        setCountdown(60) // 60 seconds countdown
+        setSuccess("OTP sent to your email. Please check your inbox.")
+      } else {
+        const data = await otpResponse.json()
+        setError(data.error || "Failed to send OTP")
+      }
+    } catch (error) {
+      setError("Failed to send OTP")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
 
     try {
       const response = await fetch("/api/update-user-role", {
@@ -60,21 +113,53 @@ export default function BecomeAuthorPage() {
             linkedin: formData.linkedin || undefined,
             github: formData.github || undefined,
           },
+          otp: otp
         }),
       })
 
       if (response.ok) {
         await refreshUser() // Refresh user data to get updated role
-        setSuccess("Congratulations! You are now an author. Redirecting to your dashboard...")
+        setStep("success")
+        setSuccess("Congratulations! Your email has been verified and you are now an author.")
         setTimeout(() => {
           router.push("/dashboard")
-        }, 2000)
+        }, 3000)
       } else {
         const data = await response.json()
-        setError(data.error || "Failed to upgrade to author")
+        setError(data.error || "Invalid OTP or failed to upgrade to author")
       }
     } catch (error) {
-      setError("Failed to upgrade to author")
+      setError("Failed to verify OTP")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    setLoading(true)
+    setError("")
+
+    try {
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: user?.email,
+          purpose: "author_verification"
+        }),
+      })
+
+      if (response.ok) {
+        setCountdown(60)
+        setSuccess("OTP resent to your email.")
+      } else {
+        const data = await response.json()
+        setError(data.error || "Failed to resend OTP")
+      }
+    } catch (error) {
+      setError("Failed to resend OTP")
     } finally {
       setLoading(false)
     }
@@ -92,9 +177,16 @@ export default function BecomeAuthorPage() {
       <div className="container mx-auto px-4 max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl font-bold">Become an Author</CardTitle>
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              {step === "form" && <Shield className="h-6 w-6 text-blue-600" />}
+              {step === "otp" && <Mail className="h-6 w-6 text-blue-600" />}
+              {step === "success" && <CheckCircle className="h-6 w-6 text-green-600" />}
+              Become an Author
+            </CardTitle>
             <CardDescription>
-              Share your stories with the world! Fill out the information below to upgrade your account to an author.
+              {step === "form" && "Share your stories with the world! Fill out the information below to upgrade your account to an author."}
+              {step === "otp" && "Please verify your email address to complete the author upgrade process."}
+              {step === "success" && "Congratulations! Your email has been verified and you are now an author."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -110,7 +202,8 @@ export default function BecomeAuthorPage() {
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {step === "form" && (
+              <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <Label htmlFor="bio">Bio *</Label>
                 <Textarea
@@ -209,9 +302,86 @@ export default function BecomeAuthorPage() {
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Upgrading..." : "Become an Author"}
+                {loading ? "Sending OTP..." : "Send Verification Code"}
               </Button>
             </form>
+            )}
+
+            {step === "otp" && (
+              <form onSubmit={handleOtpSubmit} className="space-y-6">
+                <div className="text-center">
+                  <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                    <Mail className="h-12 w-12 text-blue-600 mx-auto mb-2" />
+                    <h3 className="font-semibold text-blue-900 mb-2">Email Verification Required</h3>
+                    <p className="text-blue-800 text-sm">
+                      We've sent a 6-digit verification code to <strong>{user?.email}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="otp">Verification Code *</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Enter 6-digit code"
+                    className="text-center text-lg tracking-widest"
+                    maxLength={6}
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleResendOtp}
+                    disabled={countdown > 0 || loading}
+                    className="flex-1"
+                  >
+                    {countdown > 0 ? (
+                      <>
+                        <Clock className="h-4 w-4 mr-2" />
+                        Resend in {countdown}s
+                      </>
+                    ) : (
+                      "Resend Code"
+                    )}
+                  </Button>
+                  <Button type="submit" className="flex-1" disabled={loading || otp.length !== 6}>
+                    {loading ? "Verifying..." : "Verify & Upgrade"}
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {step === "success" && (
+              <div className="text-center space-y-6">
+                <div className="bg-green-50 p-6 rounded-lg">
+                  <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-green-900 mb-2">Email Verified Successfully!</h3>
+                  <p className="text-green-800">
+                    Your email has been verified and your account has been upgraded to author status.
+                  </p>
+                </div>
+                
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-blue-900 mb-2">What's next?</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• You now have access to the author dashboard</li>
+                    <li>• You can create and publish posts</li>
+                    <li>• Your posts will be visible to all readers</li>
+                    <li>• You can manage your author profile</li>
+                  </ul>
+                </div>
+
+                <Button onClick={() => router.push("/dashboard")} className="w-full">
+                  Go to Dashboard
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
