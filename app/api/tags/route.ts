@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { verifyToken } from "@/lib/auth"
+import { verifyToken, getUserById } from "@/lib/auth"
 import { generateSlug } from "@/lib/posts"
 
 const sql = neon(process.env.DATABASE_URL!)
@@ -24,9 +24,20 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await verifyToken(request)
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const token = request.cookies.get("auth-token")?.value
+
+    if (!token) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+    }
+
+    const payload = verifyToken(token)
+    if (!payload) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    }
+
+    const user = await getUserById(payload.userId)
+    if (!user || (user.role !== "author" && user.role !== "admin")) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
     }
 
     const { name } = await request.json()
@@ -43,7 +54,15 @@ export async function POST(request: NextRequest) {
       RETURNING *
     `
 
-    return NextResponse.json(tag[0])
+    if (!tag[0]) {
+      return NextResponse.json({ error: "Failed to create tag" }, { status: 500 })
+    }
+
+    console.log("Tag created successfully:", tag[0])
+    return NextResponse.json({
+      ...tag[0],
+      message: "Tag created successfully"
+    })
   } catch (error) {
     console.error("Error creating tag:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

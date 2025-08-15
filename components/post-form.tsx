@@ -26,7 +26,7 @@ export interface PostFormData {
   content: string
   excerpt: string
   featured_image: string
-  status: "draft" | "published"
+  status: "draft" | "published" | "archived"
   category_id: number | null
   meta_title: string
   meta_description: string
@@ -59,6 +59,7 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
   const [showMarkdown, setShowMarkdown] = useState(false)
   const [versionHistory, setVersionHistory] = useState<Array<{ ts: number; data: PostFormData }>>([])
   const [categoryFilter, setCategoryFilter] = useState("")
+  const [tagSuccessMessage, setTagSuccessMessage] = useState("")
 
   const seoInfo = useMemo(() => {
     const title = formData.meta_title?.trim() || formData.title?.trim()
@@ -94,26 +95,48 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
   }, [categories, categoryFilter])
 
   const markdownToHtml = (md: string) => {
-    // Minimal markdown to HTML conversion
+    // Enhanced markdown to HTML conversion with proper spacing
     let out = md
     out = out.replace(/```([\s\S]*?)```/g, (m, p1) => `<pre><code>${p1.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`) // code blocks
-    out = out.replace(/^######\s+(.*)$/gm, '<h6>$1</h6>')
-    out = out.replace(/^#####\s+(.*)$/gm, '<h5>$1</h5>')
-    out = out.replace(/^####\s+(.*)$/gm, '<h4>$1</h4>')
-    out = out.replace(/^###\s+(.*)$/gm, '<h3>$1</h3>')
-    out = out.replace(/^##\s+(.*)$/gm, '<h2>$1</h2>')
-    out = out.replace(/^#\s+(.*)$/gm, '<h1>$1</h1>')
+    out = out.replace(/^######\s+(.*)$/gm, '<h6 class="text-lg font-semibold mt-6 mb-3">$1</h6>')
+    out = out.replace(/^#####\s+(.*)$/gm, '<h5 class="text-xl font-semibold mt-6 mb-3">$1</h5>')
+    out = out.replace(/^####\s+(.*)$/gm, '<h4 class="text-xl font-semibold mt-6 mb-3">$1</h4>')
+    out = out.replace(/^###\s+(.*)$/gm, '<h3 class="text-xl font-semibold mt-6 mb-3">$1</h3>')
+    out = out.replace(/^##\s+(.*)$/gm, '<h2 class="text-2xl font-semibold mt-8 mb-4">$1</h2>')
+    out = out.replace(/^#\s+(.*)$/gm, '<h1 class="text-3xl font-bold mt-8 mb-4">$1</h1>')
     out = out.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     out = out.replace(/\*(.*?)\*/g, '<em>$1</em>')
-    out = out.replace(/`([^`]+)`/g, '<code>$1</code>')
-    out = out.replace(/!\[(.*?)\]\((.*?)\)/g, '<img alt="$1" src="$2" />')
-    out = out.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>')
-    out = out.replace(/^>\s+(.*)$/gm, '<blockquote>$1</blockquote>')
-    // paragraphs
+    out = out.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">$1</code>')
+    out = out.replace(/!\[(.*?)\]\((.*?)\)/g, '<img alt="$1" src="$2" class="my-4 rounded" />')
+    out = out.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline">$1</a>')
+    out = out.replace(/^>\s+(.*)$/gm, '<blockquote class="border-l-4 border-gray-300 pl-4 py-2 my-4 italic text-gray-700 bg-gray-50 rounded-r">$1</blockquote>')
+    
+    // Handle lists with proper spacing
+    out = out.replace(/^[-*+]\s+(.*)$/gm, '<li class="leading-relaxed">$1</li>')
+    out = out.replace(/^(\d+)\.\s+(.*)$/gm, '<li class="leading-relaxed">$2</li>')
+    
+    // Wrap consecutive list items in ul/ol tags
+    out = out.replace(/(<li[^>]*>.*<\/li>)(\s*<li[^>]*>.*<\/li>)*/g, (match) => {
+      if (match.includes('<li class="leading-relaxed">')) {
+        return `<ul class="mb-4 ml-6 space-y-2 list-disc">${match}</ul>`
+      }
+      return match
+    })
+    
+    // Handle paragraphs with proper spacing
     out = out
       .split(/\n{2,}/)
-      .map((para) => (para.match(/^<h[1-6]|^<pre|^<ul|^<ol|^<img|^<blockquote/) ? para : `<p>${para.replace(/\n/g, '<br/>')}</p>`))
+      .map((para) => {
+        if (para.match(/^<h[1-6]|^<pre|^<ul|^<ol|^<img|^<blockquote/)) {
+          return para
+        }
+        if (para.trim()) {
+          return `<p class="mb-4 leading-relaxed">${para.replace(/\n/g, '<br/>')}</p>`
+        }
+        return para
+      })
       .join('\n')
+    
     return out
   }
 
@@ -181,6 +204,14 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
       return
     }
 
+    // Log the form data being submitted
+    console.log("Submitting form with data:", {
+      ...formData,
+      content: formData.content.substring(0, 100) + "...",
+      tag_ids: formData.tag_ids,
+      tag_count: formData.tag_ids.length
+    })
+
     try {
       const contentForSubmit = showMarkdown ? markdownToHtml(formData.content) : formData.content
       await onSubmit({ ...formData, content: contentForSubmit })
@@ -213,14 +244,34 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       })
+      
       if (response.ok) {
         const tag = await response.json()
+        console.log("Tag created successfully:", tag)
+        
+        // Add the new tag to the tags list
         setTags((prev) => [...prev, { id: tag.id, name: tag.name }])
+        
+        // Automatically select the newly created tag
         setFormData((prev) => ({ ...prev, tag_ids: [...prev.tag_ids, tag.id] }))
+        
+        // Clear the input
         setNewTagName("")
+        
+        // Show success feedback (you can add a toast notification here)
+        console.log(`Tag "${tag.name}" created and selected successfully!`)
+        setTagSuccessMessage(`Tag "${tag.name}" created and selected successfully!`)
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setTagSuccessMessage(""), 3000)
+      } else {
+        const errorData = await response.json()
+        console.error("Failed to create tag:", errorData.error)
+        // You can add error handling here (e.g., show error message to user)
       }
     } catch (error) {
       console.error("Failed to create tag", error)
+      // You can add error handling here (e.g., show error message to user)
     } finally {
       setCreatingTag(false)
     }
@@ -266,7 +317,7 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
                 <Label htmlFor="content">Content *</Label>
                 {showPreview ? (
                   <div
-                    className="prose max-w-none border rounded-md p-4"
+                    className="border rounded-md p-6 bg-white rich-text-content"
                     dangerouslySetInnerHTML={{ __html: showMarkdown ? markdownToHtml(formData.content) : formData.content }}
                   />
                 ) : showMarkdown ? (
@@ -389,7 +440,7 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value: "draft" | "published") => setFormData((prev) => ({ ...prev, status: value }))}
+                  onValueChange={(value: "draft" | "published" | "archived") => setFormData((prev) => ({ ...prev, status: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -397,6 +448,7 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -483,21 +535,42 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
                   {creatingTag ? "Adding..." : "Add"}
                 </Button>
               </div>
+              {tagSuccessMessage && (
+                <Alert variant="default" className="mt-4 border-green-200 bg-green-50 text-green-800">
+                  <AlertDescription>{tagSuccessMessage}</AlertDescription>
+                </Alert>
+              )}
               <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => handleTagToggle(tag.id)}
-                    className={`px-3 py-1 text-sm rounded-full border transition-colors ${
-                      formData.tag_ids.includes(tag.id)
-                        ? "bg-blue-500 text-white border-blue-500"
-                        : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
-                    }`}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
+                {tags.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No tags available. Create your first tag above.</p>
+                ) : (
+                  <>
+                    <div className="w-full text-sm text-muted-foreground mb-2">
+                      {formData.tag_ids.length > 0 ? (
+                        <span>Selected: {formData.tag_ids.length} tag{formData.tag_ids.length !== 1 ? 's' : ''}</span>
+                      ) : (
+                        <span>Click tags to select them</span>
+                      )}
+                    </div>
+                    {tags.map((tag) => (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => handleTagToggle(tag.id)}
+                        className={`px-3 py-1 text-sm rounded-full border transition-colors ${
+                          formData.tag_ids.includes(tag.id)
+                            ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
+                            : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
+                        }`}
+                      >
+                        {tag.name}
+                        {formData.tag_ids.includes(tag.id) && (
+                          <span className="ml-1">✓</span>
+                        )}
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -537,7 +610,14 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
               className="flex-1"
               onClick={() => {
                 const contentForSubmit = showMarkdown ? markdownToHtml(formData.content) : formData.content
-                onSubmit({ ...formData, content: contentForSubmit, status: "draft" })
+                const submitData: PostFormData = { ...formData, content: contentForSubmit, status: "draft" }
+                console.log("Saving draft with data:", {
+                  ...submitData,
+                  content: submitData.content.substring(0, 100) + "...",
+                  tag_ids: submitData.tag_ids,
+                  tag_count: submitData.tag_ids.length
+                })
+                onSubmit(submitData)
               }}
             >
               Save Draft
@@ -548,7 +628,14 @@ export function PostForm({ post, onSubmit, loading }: PostFormProps) {
               className="flex-1"
               onClick={() => {
                 const contentForSubmit = showMarkdown ? markdownToHtml(formData.content) : formData.content
-                onSubmit({ ...formData, content: contentForSubmit, status: "published" })
+                const submitData: PostFormData = { ...formData, content: contentForSubmit, status: "published" }
+                console.log("Publishing with data:", {
+                  ...submitData,
+                  content: submitData.content.substring(0, 100) + "...",
+                  tag_ids: submitData.tag_ids,
+                  tag_count: submitData.tag_ids.length
+                })
+                onSubmit(submitData)
               }}
             >
               {loading ? "Saving..." : post ? "Publish Changes" : "Publish"}

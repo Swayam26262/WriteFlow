@@ -24,6 +24,28 @@ export default async function PostPage({ params }: PageProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
+        {/* Back Button */}
+        <div className="mb-6">
+          <Link 
+            href="/posts" 
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <svg 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+            Back to Posts
+          </Link>
+        </div>
+
         <ViewTracker postId={post.id} />
         {post.featured_image && (
           <div className="relative aspect-video mb-6">
@@ -57,7 +79,7 @@ export default async function PostPage({ params }: PageProps) {
         </div>
 
         <Card className="mb-8">
-          <CardContent className="prose dark:prose-invert max-w-none pt-6" dangerouslySetInnerHTML={{ __html: post.content }} />
+          <CardContent className="pt-6 rich-text-content" dangerouslySetInnerHTML={{ __html: post.content }} />
         </Card>
 
         {post.tags && post.tags.length > 0 && (

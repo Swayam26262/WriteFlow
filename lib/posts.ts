@@ -42,7 +42,7 @@ export interface CreatePostData {
   content: string
   excerpt?: string
   featured_image?: string
-  status?: "draft" | "published"
+  status?: "draft" | "published" | "archived"
   category_id?: number
   meta_title?: string
   meta_description?: string
@@ -123,7 +123,32 @@ export async function createPost(authorId: number, postData: CreatePostData): Pr
     }
 
     console.log("Post created successfully:", post.id)
-    return post
+    return {
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      content: post.content,
+      excerpt: post.excerpt,
+      featured_image: post.featured_image,
+      status: post.status,
+      author_id: post.author_id,
+      category_id: post.category_id,
+      view_count: post.view_count,
+      like_count: post.like_count,
+      meta_title: post.meta_title,
+      meta_description: post.meta_description,
+      published_at: post.published_at,
+      created_at: post.created_at,
+      updated_at: post.updated_at,
+      author: {
+        id: post.author_id,
+        name: '',
+        email: '',
+        profile_picture: undefined,
+      },
+      category: undefined,
+      tags: [],
+    }
   } catch (error) {
     console.error("Error creating post:", error)
     if (error instanceof Error) {
@@ -223,7 +248,32 @@ export async function updatePost(
       RETURNING *
     `
     
-    return result[0] || null
+    const updatedPost = result[0]
+    if (!updatedPost) return null
+
+    // Handle tag updates if provided
+    if (postData.tag_ids !== undefined) {
+      console.log("Updating tags for post:", postId, "New tag IDs:", postData.tag_ids)
+      
+      // Remove all existing tags for this post
+      await sql`
+        DELETE FROM post_tags WHERE post_id = ${postId}
+      `
+      
+      // Add new tags if any
+      if (postData.tag_ids.length > 0) {
+        for (const tagId of postData.tag_ids) {
+          await sql`
+            INSERT INTO post_tags (post_id, tag_id)
+            VALUES (${postId}, ${tagId})
+            ON CONFLICT DO NOTHING
+          `
+        }
+      }
+    }
+
+    // Fetch the updated post with tags
+    return await getPostById(postId)
   } catch (error) {
     console.error("Error updating post:", error)
     return null
@@ -241,8 +291,29 @@ export async function getPostsByAuthor(authorId: number, status?: string): Promi
       ORDER BY p.created_at DESC
     `
 
-    return posts.map((post) => ({
-      ...post,
+    return posts.map((post: any) => ({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      content: post.content,
+      excerpt: post.excerpt,
+      featured_image: post.featured_image,
+      status: post.status,
+      author_id: post.author_id,
+      category_id: post.category_id,
+      view_count: post.view_count,
+      like_count: post.like_count,
+      meta_title: post.meta_title,
+      meta_description: post.meta_description,
+      published_at: post.published_at,
+      created_at: post.created_at,
+      updated_at: post.updated_at,
+      author: {
+        id: post.author_id,
+        name: post.author_name || '',
+        email: '',
+        profile_picture: undefined,
+      },
       category: post.category_name
         ? {
             id: post.category_id,
@@ -250,6 +321,7 @@ export async function getPostsByAuthor(authorId: number, status?: string): Promi
             slug: post.category_slug,
           }
         : undefined,
+      tags: [],
     }))
   } catch (error) {
     console.error("Error fetching posts by author:", error)
