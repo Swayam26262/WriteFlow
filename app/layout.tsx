@@ -12,9 +12,28 @@ export const metadata: Metadata = {
   title: "WriteFlow",
   description: "A full-featured blogging platform with rich content creation and user management",
   generator: "WriteFlow",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   icons: {
     icon: "https://res.cloudinary.com/df2oollzg/image/upload/v1755095614/Untitled_design_1_avqxrj.svg",
     shortcut: "https://res.cloudinary.com/df2oollzg/image/upload/v1755095614/Untitled_design_1_avqxrj.svg",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "WriteFlow",
+    images: [
+      {
+        url: "https://res.cloudinary.com/df2oollzg/image/upload/v1755242339/da7b4e86-33b0-4206-8675-1a799ec5f3f0.png",
+        width: 1200,
+        height: 630,
+        alt: "WriteFlow – Blog platform",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: [
+      "https://res.cloudinary.com/df2oollzg/image/upload/v1755242339/da7b4e86-33b0-4206-8675-1a799ec5f3f0.png",
+    ],
   },
 }
 

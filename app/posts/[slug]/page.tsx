@@ -7,6 +7,7 @@ import { getPostBySlug } from "@/lib/posts"
 import { ViewTracker } from "@/components/view-tracker"
 import { LikeButton } from "@/components/like-button"
 import { CommentsSection } from "@/components/comments-section"
+import type { Metadata } from "next"
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -75,5 +76,44 @@ export default async function PostPage({ params }: PageProps) {
       </div>
     </div>
   )
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params
+  const post = await getPostBySlug(slug)
+
+  if (!post) {
+    return {
+      title: "Post not found",
+    }
+  }
+
+  const fallbackImage = "https://res.cloudinary.com/df2oollzg/image/upload/v1755242339/da7b4e86-33b0-4206-8675-1a799ec5f3f0.png"
+  const ogImage = post.featured_image || fallbackImage
+
+  return {
+    title: post.title,
+    description: post.excerpt || post.title,
+    openGraph: {
+      type: "article",
+      title: post.title,
+      description: post.excerpt || post.title,
+      url: `/posts/${slug}`,
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt || post.title,
+      images: [ogImage],
+    },
+  }
 }
 
