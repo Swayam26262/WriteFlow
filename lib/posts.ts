@@ -140,95 +140,89 @@ export async function updatePost(
   postData: Partial<CreatePostData>,
 ): Promise<Post | null> {
   try {
-    const updates: string[] = []
-    const values: any[] = []
-    let paramIndex = 1
+    // Check if post exists and user is the author
+    const existingPost = await sql`
+      SELECT id, author_id FROM posts WHERE id = ${postId}
+    `
+    
+    if (existingPost.length === 0) {
+      return null
+    }
+    
+    if (existingPost[0].author_id !== authorId) {
+      return null
+    }
 
+    // Build update data
+    const updateData: any = {}
+    
     if (postData.title !== undefined) {
-      updates.push(`title = $${paramIndex}`)
-      values.push(postData.title)
-      paramIndex++
-
+      updateData.title = postData.title
       if (!postData.slug) {
-        updates.push(`slug = $${paramIndex}`)
-        values.push(generateSlug(postData.title))
-        paramIndex++
+        updateData.slug = generateSlug(postData.title)
       }
     }
-
+    
     if (postData.slug !== undefined) {
-      updates.push(`slug = $${paramIndex}`)
-      values.push(postData.slug?.trim() || null)
-      paramIndex++
+      updateData.slug = postData.slug?.trim() || null
     }
-
+    
     if (postData.content !== undefined) {
-      updates.push(`content = $${paramIndex}`)
-      values.push(postData.content)
-      paramIndex++
+      updateData.content = postData.content
     }
-
+    
     if (postData.excerpt !== undefined) {
-      updates.push(`excerpt = $${paramIndex}`)
-      values.push(postData.excerpt)
-      paramIndex++
+      updateData.excerpt = postData.excerpt
     }
-
+    
     if (postData.featured_image !== undefined) {
-      updates.push(`featured_image = $${paramIndex}`)
-      values.push(postData.featured_image)
-      paramIndex++
+      updateData.featured_image = postData.featured_image
     }
-
+    
     if (postData.status !== undefined) {
-      updates.push(`status = $${paramIndex}`)
-      values.push(postData.status)
-      paramIndex++
-
+      updateData.status = postData.status
       if (postData.status === "published") {
-        updates.push(`published_at = $${paramIndex}`)
-        values.push(postData.published_at || new Date().toISOString())
-        paramIndex++
+        updateData.published_at = postData.published_at || new Date().toISOString()
       }
     }
-
+    
     if (postData.published_at !== undefined) {
-      updates.push(`published_at = $${paramIndex}`)
-      values.push(postData.published_at)
-      paramIndex++
+      updateData.published_at = postData.published_at
     }
-
+    
     if (postData.category_id !== undefined) {
-      updates.push(`category_id = $${paramIndex}`)
-      values.push(postData.category_id)
-      paramIndex++
+      updateData.category_id = postData.category_id
     }
-
+    
     if (postData.meta_title !== undefined) {
-      updates.push(`meta_title = $${paramIndex}`)
-      values.push(postData.meta_title)
-      paramIndex++
+      updateData.meta_title = postData.meta_title
     }
-
+    
     if (postData.meta_description !== undefined) {
-      updates.push(`meta_description = $${paramIndex}`)
-      values.push(postData.meta_description)
-      paramIndex++
+      updateData.meta_description = postData.meta_description
     }
+    
+    updateData.updated_at = new Date().toISOString()
 
-    updates.push(`updated_at = $${paramIndex}`)
-    values.push(new Date().toISOString())
-    paramIndex++
-
-    const query = `
+    // Execute update with all fields
+    const result = await sql`
       UPDATE posts 
-      SET ${updates.join(", ")}
-      WHERE id = $${paramIndex} AND author_id = $${paramIndex + 1}
+      SET 
+        title = COALESCE(${updateData.title}, title),
+        slug = COALESCE(${updateData.slug}, slug),
+        content = COALESCE(${updateData.content}, content),
+        excerpt = COALESCE(${updateData.excerpt}, excerpt),
+        featured_image = COALESCE(${updateData.featured_image}, featured_image),
+        status = COALESCE(${updateData.status}, status),
+        published_at = COALESCE(${updateData.published_at}, published_at),
+        category_id = COALESCE(${updateData.category_id}, category_id),
+        meta_title = COALESCE(${updateData.meta_title}, meta_title),
+        meta_description = COALESCE(${updateData.meta_description}, meta_description),
+        updated_at = ${updateData.updated_at}
+      WHERE id = ${postId}
       RETURNING *
     `
-    values.push(postId, authorId)
-
-    const result = await sql.unsafe(query, values)
+    
     return result[0] || null
   } catch (error) {
     console.error("Error updating post:", error)

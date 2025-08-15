@@ -4,9 +4,10 @@ import { verifyToken } from "@/lib/auth"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const postId = params.id
+    const { id } = await params
+    const postId = id
 
     // Get all comments for the post with user info
     const comments = await sql`
@@ -55,8 +56,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const token = request.cookies.get("auth-token")?.value
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const { content, parentId } = await request.json()
-    const postId = params.id
+    const postId = id
 
     if (!content?.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 })

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
@@ -33,18 +33,19 @@ interface Tag {
   post_count: number
 }
 
-export default function TagPage({ params }: { params: { slug: string } }) {
+export default function TagPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
   const [posts, setPosts] = useState<Post[]>([])
   const [tag, setTag] = useState<Tag | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchTagPosts()
-  }, [params.slug])
+  }, [slug])
 
   const fetchTagPosts = async () => {
     try {
-      const [postsRes, tagsRes] = await Promise.all([fetch(`/api/posts/search?tag=${params.slug}`), fetch("/api/tags")])
+      const [postsRes, tagsRes] = await Promise.all([fetch(`/api/posts/search?tag=${slug}`), fetch("/api/tags")])
 
       if (postsRes.ok) {
         const postsData = await postsRes.json()
@@ -53,7 +54,7 @@ export default function TagPage({ params }: { params: { slug: string } }) {
 
       if (tagsRes.ok) {
         const tagsData = await tagsRes.json()
-        const foundTag = tagsData.find((t: Tag) => t.slug === params.slug)
+        const foundTag = tagsData.find((t: Tag) => t.slug === slug)
         setTag(foundTag)
       }
     } catch (error) {

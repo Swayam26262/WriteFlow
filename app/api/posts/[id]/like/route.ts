@@ -4,8 +4,9 @@ import { verifyToken } from "@/lib/auth"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const token = request.cookies.get("auth-token")?.value
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const postId = params.id
+    const postId = id
 
     // Check if user already liked this post
     const existingLike = await sql`
@@ -57,11 +58,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const token = request.cookies.get("auth-token")?.value
     const payload = token ? verifyToken(token) : null
-    const postId = params.id
+    const postId = id
 
     // Get like count
     const post = await sql`

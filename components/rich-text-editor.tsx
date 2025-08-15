@@ -49,7 +49,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none min-h-[50vh] p-4 focus:outline-none',
+        class: 'min-h-[50vh] p-4 focus:outline-none text-gray-900 leading-relaxed',
       },
     },
   })
@@ -147,7 +147,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
         </Button>
       </div>
       <div className="resize-y overflow-auto min-h-[50vh]">
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} className="[&_.ProseMirror]:min-h-[50vh] [&_.ProseMirror]:p-4 [&_.ProseMirror]:focus:outline-none [&_.ProseMirror]:text-gray-900 [&_.ProseMirror]:leading-relaxed [&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:mb-4 [&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-bold [&_.ProseMirror_h2]:mb-3 [&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-bold [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_p]:mb-2 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:ml-6 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:ml-6 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-gray-300 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_code]:bg-gray-100 [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:rounded [&_.ProseMirror_pre]:bg-gray-100 [&_.ProseMirror_pre]:p-4 [&_.ProseMirror_pre]:rounded [&_.ProseMirror_pre]:overflow-x-auto" />
       </div>
     </div>
   )

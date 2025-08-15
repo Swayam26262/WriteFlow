@@ -1,13 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { PostForm, type PostFormData } from "@/components/post-form"
 import type { Post } from "@/lib/posts"
 
-export default function EditPostPage({ params }: { params: { id: string } }) {
+export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const [post, setPost] = useState<Post | null>(null)
   const [loading, setLoading] = useState(false)
@@ -15,11 +16,11 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     fetchPost()
-  }, [params.id])
+  }, [id])
 
   const fetchPost = async () => {
     try {
-      const response = await fetch(`/api/posts/${params.id}`)
+      const response = await fetch(`/api/posts/${id}`)
       if (response.ok) {
         const data = await response.json()
         setPost(data)
@@ -37,7 +38,9 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
   const handleSubmit = async (data: PostFormData) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/posts/${params.id}`, {
+      console.log("Submitting post data:", data)
+      
+      const response = await fetch(`/api/posts/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -45,11 +48,17 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
         body: JSON.stringify(data),
       })
 
+      console.log("Response status:", response.status)
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()))
+
       if (response.ok) {
         const updatedPost = await response.json()
+        console.log("Post updated successfully:", updatedPost)
         setPost(updatedPost)
       } else {
-        throw new Error("Failed to update post")
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        console.error("Server error response:", errorData)
+        throw new Error(errorData.error || `Failed to update post (${response.status})`)
       }
     } catch (error) {
       console.error("Error updating post:", error)

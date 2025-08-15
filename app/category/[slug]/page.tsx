@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
@@ -30,19 +30,20 @@ interface Category {
   post_count: number
 }
 
-export default function CategoryPage({ params }: { params: { slug: string } }) {
+export default function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
   const [posts, setPosts] = useState<Post[]>([])
   const [category, setCategory] = useState<Category | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchCategoryPosts()
-  }, [params.slug])
+  }, [slug])
 
   const fetchCategoryPosts = async () => {
     try {
       const [postsRes, categoriesRes] = await Promise.all([
-        fetch(`/api/posts/search?category=${params.slug}`),
+        fetch(`/api/posts/search?category=${slug}`),
         fetch("/api/categories"),
       ])
 
@@ -53,7 +54,7 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
 
       if (categoriesRes.ok) {
         const categoriesData = await categoriesRes.json()
-        const foundCategory = categoriesData.find((cat: Category) => cat.slug === params.slug)
+        const foundCategory = categoriesData.find((cat: Category) => cat.slug === slug)
         setCategory(foundCategory)
       }
     } catch (error) {
