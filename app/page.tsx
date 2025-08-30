@@ -11,7 +11,7 @@ import Image from "next/image"
 import { ArrowRight, BookOpen, Users, FileText, TrendingUp, Clock } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 
-  interface Post {
+interface Post {
   id: number
   title: string
   slug: string
